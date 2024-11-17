@@ -1,0 +1,939 @@
+-========postgresql edition==
+community edition: free of  cost. 40% users are using and 
+if any issue we can send a mail (mailing list)
+
+enter prise edition:- postgres EDB need to pay--30% users are using--if any issue we can
+directly reach to support EDB.
+third party tools from EDB only like repmanager,pgpool,pbadger,pgbouncer etc..
+
+Postgres cloud:- we need to pay of resources like memory,cpu etc.. not postgresh
+
+
+open-source:
+
+it is free of cost and no need pay.
+community: if any features require we need to write the code and deploy
+
+enter prise DB: we can't edit binaries for to write code.
+
+=====feature====
+portable--written in ANSI C
+supports windows,linux,mac os/x unix platforms
+
+reliable: acid compliant,support transactions,uses wal-redo
+to maintain the integrity of the data, there are 4 properties
+described in the database management system
+which are known as the acid proerties.
+
+the acid properties are meant for the transaction that goes through
+a differents 
+
+ACID
+A atomocity:--
+it means if any operation is perfomed on the data,either it should
+
+C Consiistency:-
+in the case of transactions, the integrity of the data is very 
+essentia so that the database remains consistent before and after the tansaction
+
+I isolation:- 
+D durability:-
+
+scalable:-MVCC,support table partitioning,support tablesaces
+
+
+================install=====
+postgres9.6,10,11,12,13,14--free bug,15 new 
+
+we need to install the rpm's after 11th version... before that we have binaries
+
+for windows we have avilable for binaries.
+
+Postgresql software-->unzip -->granted the permission-->install the postgresql software and create default server
+-->
+
+./postgresql-10.10-1-linux-x64.run gui mode
+or
+./postgresql-10.10-1-linux-x64.run --mode test
+
+connect--
+/opt/Postgresql/10/bin/psql -U postgres -p 5432
+
+\l --list of db's
+\du- list of users
+\dn-list of schemas
+\db list of tablespaces
+\dS --data dictionary tables..under pg_catalog(hidden schema)
+\c db name
+ select version();
+show data_directory;
+======RPM install+++===
+
+--add postgresql repositiory--
+sudo yum -y install https://---
+
+in this reporsitry we will download 11th and 12,13,14,15,16 versions from this. once
+repository added.
+
+--need to update the system--
+sudo yum-y update
+
+--once update need to reboot the system
+sudo systemctl reboot
+--once reboot is done-
+
+insall postgresh
+sudo yum install -y postgresql14-serer postgresql14
+similar way we can install other versions tooo
+
+/usr/postgres version downloaded locations avilable
+
+=====================================================
+1-we need to check the space on FS
+mkdir /app01
+chown postgres:postgres /app01 -R
+su - postgres
+than create database server using initdb utility
+initdb -D /app01
+	we do not start with default port no. need modify the port no in postgresql.conf
+
+start the database server--using pg_ctl utility
+
+pg_ctl -D /app01 start/stop/restart
+
+ps -ef | grep postgres-- it is runniing or not
+
+set bash profile 
+change owner ship to postgresql
+
+vi /etc/passwd---chnage the directory for postgres . so by default it will go to directory during posgres login
+
+initdb --version ----it will display the version
+
+initdb--intilize is nothing but build the server.
+
+##instance/cluster lay out: 
+
+##datafile/tablespace layot: page size is 8k.
+/app01/data-->two tablespces base and global.. 
+
+base tablespace(pg_default)--when we create db and object id created-->ince db created we can create tables and index .
+each table and index will create a OID. will call datafiles.
+1000table--1000 datafiles
+1000 indexes = 1000 datafiles..
+
+select oid,datname from pg_database; to check the oid for partcular database.
+
+creata database mdb ---under pg_default
+
+select oid,datname from pg_database; --to find the new db oid.
+
+create table
+
+create table t1 (id integer, name varchar(50));
+
+select oid,relname from pg_class where relname='t1';
+
+insert into m1 values(generate_series(1,1000),'manoj');
+
+select * from pg_settings name='sahred_buffers';
+
+postgres=# select * from pg_settings where name='shared_buffers';
+      name      | setting | unit |        category         |                          short_desc                          | ext
+ra_desc |  context   | vartype |       source       | min_val |  max_val   | enumvals | boot_val | reset_val |              sou
+rcefile              | sourceline | pending_restart 
+----------------+---------+------+-------------------------+--------------------------------------------------------------+----
+--------+------------+---------+--------------------+---------+------------+----------+----------+-----------+-----------------
+---------------------+------------+-----------------
+ shared_buffers | 38400   | 8kB  | Resource Usage / Memory | Sets the number of shared memory buffers used by the server. |    
+        | postmaster | integer | configuration file | 16      | 1073741823 |          | 1024     | 38400     | /app01/cluster1/
+postgresql.auto.conf |          3 | f
+(1 row)
+
+here postmaster is the so we need to restart the postgres to reflect valuer.
+if postgres is not there we can do just reload the postgres server.
+
+====windows---
+initdb -D c:app01 -U postgres note--we need to add the postgres for super user
+if we can't mentionf the postgres and can't able to login.
+
+before start the postgres server, need to change the port no.
+
+
+postgres=# 
+
+=====================MVCC===================
+
+
+======================Schema======================
+\dn
+\l
+show port;
+\du
+create database edbstore;
+create user app01 with password 'test';
+create user app02 password 'test';
+--now e can create autthorization schema with in db
+\c edbstore
+create schema hr authorization app02
+create schema accounts authorization app01;
+
+\c edbstore app01
+show search_path;
+
+set search_path to hr;
+show serach_patch;
+create table emp(empid int,empname varchar(50));
+insert into emp values(1111,'postmaster');
+
+\dt
+\c edbstore app02
+set search_path to hr;--we can't see the tables. we need to give usage privilages
+\dt
+\c edbstore app01
+grant usage on scheam to hr to app02;
+
+\c edbstore app02
+\dt --we can able to see the tables 
+select * from emp;----we gave to only to schema not to table
+\c edbstore app01
+grant select on hr.emp to app02;
+\c edbstore app02
+select * from hr.emp;
+=========how to check permissions====
+\c edbstore postgres
+set serach_path to hr;
+\z emp --show details
+\z emp----
+====================user level setting for set the user to schema==
+\c edbstore postgres
+alter user app01 set search_path to hr;
+alter user app02 set search_path to account;
+
+\c edbstore app01
+show serch_path
+
+=============
+create schema admin authorzation app01; one user can have multiple schemas.
+\dn
+\c edbstore app01
+show search_path;
+create table t1(name varchar(20));
+\dt
+create table admin.t2(name varchar(20));
+\dt
+set search_path to admin,hr;
+\dt it will display the details under app01 owner
+\dn--it will display all schema details
+
+
+
+--> while install postgres default 3 databases created
+postgres
+template0: it is safer side database, if someone delete template1
+we create from temlapte0. 
+template1--it is model ddatabase and we can alter also, whenever we create a database 
+it is create from model database(template1).
+we can alter the template1, if we add 5 tables in template1
+if any one create a new db that tables also in new db
+
+
+====================tablespaces==============
+----2 tablespace defaulty
+pg_default: it maintained by default databases
+
+pg_global:- it contains global data dictinaries..
+
+note if any new db creadted under p_default
+
+select tablename,tablespace from pg_tables where tablename='pg_database';
+
+note:- we need to find the space on filesystem and space to creatae tablesapce.
+mkdir tablspc1
+
+create tablespce tblspc1 location '/tblspc1'; there is no option for size.
+note:it is completely filesystem level alerts, not tablespce and db alerts
+
+\db+ --it will display the tablespace details
+
+mkdir tbs2
+create tablespace test location '/app01/tblspc1';
+\db+
+create table emp(id integer, name varchar(20)) tablesapce tablename;
+\db+
+insert into emp values(generate_series(1,100000));
+\db+
+select oid,relname from pg_class where relname='emp';
+table oid find
+select * from pg_tablespace;
+\db+
+
+create database new tablesapce test;
+\l+
+\db+
+while create database with tablesapce. db will create system tablesapce under the tablesapce.
+any user defined database will create.
+
+=================temp========tablesapce======
+create tablespace tbsmp location '/location';
+\db+
+show temp_tablespace
+alter system set temp_tablesapce ='tbstmp';
+ 
+select pg_reload_conf()---------------------is a system function which instructs postgresql to reload it is configuraton by sending a sighup signal
+
+
+--default schema is public..
+
+--under new db, we can create a muliple users..
+
+hidden schema:pg_catalog schema-- all the data dictionat avilable under pg_catalog
+one more hidden schema:information_schema it is related privis ,roles
+
+=========directory======
+pg_defaul---loocation for softwarelocation/base/ it 
+is showing numbers and that numbers (oid's)represent the databases.
+
+select oid,datname from pg_database;
+
+select * from pg_class where oid=number;
+
+==current_logfile==
+error log file.
+
+in 14th verison autometically created.
+
+-----postgressql.auto.connf:
+whenver we cahnged using alter only  in inside instane/db level it is written to into
+postgressql.auto.conf.
+
+pg_settings view for verify for static or dynamic..
+
+pg_setings: in this view if we have seen postmaster, that parameter needs to restat for update the new thing.
+
+
+pg_hba.conf---host based access control
+
+pg_wal:all the transactions files located in pg_wal
+
+pg_lgoical: when we setup for logicla replication details are in location
+
+pg_replslot: 
+
+=======memory===
+shared_bufferes:
+
+100G DB--3% of memory to allocate. based on the db size we need to increase the memory.
+
+
+
+===============log_management=====================
+log_destination='stderr'
+logging_collector =on ---it will write into log if it is disable not writing. need to restart t reflect
+log_directory=log-----location of log.
+log_filename= 
+log_rotation_age=1d after 1day it will rotate
+
+create table t1(id integer name varchar));
+insert into t1 values(generate_series(1,10000000),'manoj');
+
+i need to enable long running sessions..
+need to use thee log_min_duration_statment=-1 ---disable
+log+min_duration_sttatement=2000 millin seconds--it will appea in log
+log_min_error_statment=error,fatal,panic,notice,warnings
+
+
+than reload the postgres
+
+insert into t1 values(generate_series(1,100000000),'kiran');
+o
+now check logs it showig details in log file.
+
+log_duation=on/off--users login information in log
+log_error_verbosity=default
+log_hostname= on 
+log_line_prefix='%m [%p] %a %u %d %r'
+log_statment='none' ddl,mod,all it will write into the log file.
+
+log_replication_commands=off/on---if replication details are in log file.
+
+create user app01 with passwod 'test123';
+create user app02 with passwod 'test13';
+create database kiran
+psql -p -u app01 -d mdb
+
+create table mtest(id integer,name varchar(20));
+inser into mtest values(generate_series(1,10000),'kiran');
+
+conne with ather user
+psql -p -d postgre -u app02
+create table mtest(id integer,name varchar(20));
+inser into mtest values(generate_series(1,10000),'kiran');
+
+check log file and  it will display details..
+
+====================Security=====================
+level 1--hba.comnf(server and application)
+level2 database and schema like connect,usage privilage(user/passwd)
+level3 object level privs
+
+passwords are stored in pg_shadow system table
+pg_hba's trust authentication bypass the password and thus is not secure
+
+Very IMP :
+always revoke connect privilage on a database from public to block notrmal users access to the dataabases.
+
+mkdir devlop
+initdb -D /app01/devlop
+
+change port no 6661
+pg_ctl -D /app01/devlop start
+psql -p 6661 -U postgres
+
+vi pg_hba.conf
+
+local all all trust---that is the reason it is connecting without password.
+chnage trust to md5.
+
+select * from pg_shadow;
+
+alter user postgres with password 'test123';
+
+select * from pg_shadow;
+vi pg_hba.conf --trust to md5
+reload it
+psql -p 6661 -U postgres
+it is asking password for postgres
+
+we need to create the policy for lock and incorrect passwords..
+
+
+note: if we forgot superusr password how can we do it........
+vi pg_hba.conf we need to change trus for password reset and login/.
+reload it;
+
+create database edb;
+created database pdb;
+remove connect privs 
+
+revoke connect on database edb from public;
+
+create user app01 with password 'rest123';
+create user app02 with password 
+creae user app02 with password 'test123';
+create user appuse with password trst123;
+\du
+\q
+vi pg_hba.conf
+
+local all  postgres      md5
+reload
+\q
+psql -p 6661 -U app01 -d postgres
+
+vi pg_hba
+
+local pdb app01   md5
+local edb app02   md5
+local postgres app03 reject
+
+relod
+
+psql -p -U appo1 -d pdb
+
+psql -p -u -d postgres
+grant connct on database pdb to app01;
+grant connect on database edb to app02;
+
+create table t1( name varchar (20));
+
+
+-U \c edb
+create schema man;
+
+set search_patc to man;
+
+create table t1(name varchar(20));
+
+connect postgres
+\c edb
+grant usage on schema man to app02; ---need to see man schema object for app02
+
+psql -p -u app02 -d 
+
+
+
+=================usermanagment=================
+\du --list out the users
+
+role--
+
+create role approle;
+we can't login using role.
+select * pg_roles;
+
+note: while creating role we can use login option at the time we can able to login.
+create role kiran login password 'test123';
+
+create role kiran superuser login password 'password';
+
+\du---
+
+create user dba1 with password 'test123' role john;
+
+create role role name with login password '' valid until '2030-03-01';
+
+note: this role valid until above date;
+
+create user dba1 with password 'test123' role dev_api;
+
+note: assign role with user.
+
+alter user app01 nologin;---can not login;
+
+alter user app01 login; if any unlock the user;
+
+create group dbtesm;---create group
+
+alter group dbtesm add user app01,app02,app03,approle,dba1;
+note : all are member of dbteam;
+postgres=# create table matab(name varchar(20));
+insert into matb values('kk');
+grant select ,insert,deleted,upate on mtab to dbteam;
+
+select * from information_schema.role_table_grants where grantee='dbatean';
+
+note: it will show the details
+\du 
+select * from pg_group;
+\du
+select * from pg_roles;
+\du
+
+===how to connect one db to other db==
+
+database server--->mdb database--->create extension dblink fdw
+target----->datavase server2-->pdb
+\dx--check extention
+
+
+user:--
+
+
+and Audit:--
+
+create new postgres
+port=7777
+shared_preload_libraries='pgaudit,pgauditlogtofile' --.conf fle
+pg_ctl -D /app01/devlop
+
+\dx --
+
+create extension pgaudit;
+
+\dx
+create extension pgauditlogtofile;
+\dx
+\q
+vi .conf
+pgaudit.log_directory='audit_inst_log'
+pgaudit.log_filename = 'audit_inst_%y....
+restart the postgres
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+======================Cluster====================
+postgrese introduction
+clustering architrcture
+setting up postgrade
+setting up barman
+setting up repmgr
+ha configuration
+failover scenarios
+=
+pre-req
+we have some knowldge of database
+we understand the basci of setting up and configuration linux
+we understand what virtual machines are
+we have a basic understand of high availability and the systems we use rto achive it
+
+---
+in postgres these logs are written before the data is commited
+to the primary,which is why they are called Write Ahead logs ot WALs.
+
+Cluster architecture steps
+--
+create and configure a primary database cluster on a node
+setup barman and configure backups
+user repmgr to create replicas from the barman backups
+failover scenarios include planned and unplanned and involve changing te status of the nodes from standby
+to primary or vice-versa.
+
+
+
+
+=====================online backu and recovery===============
+Prod1--
+archive_mode=on
+archove_Command- cp %p /app01/archive/%f
+
+create table t1 as select * from pg_class
+same as t2
+t3,t4
+
+it will go  pg_wal ---->archive location
+
+mkdir prd1
+mkdir arc1
+mkdir bkp1
+initdb -D /app01/prd1
+go to .conf file
+change port no
+archive_mode=on
+archove_Command- cp %p /app01/archive/%f
+
+show data_directory
+create table t1 as select * from pg_class,pg_description;
+same as t2
+t3,t4
+
+pg_basebackup -p 5222 -U postgres -D /app01/bap1 -P
+
+psql -p 5222 ---other terminal
+checkpoint
+
+psql -p 5222
+
+create table p3 as select * from pg_class,pg_description;
+same as p4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===============================replication====================
+1. streaming replication with hotstandby
+failover and failback
+
+2. Cascade replication
+
+3 streamin with replication slots
+
+4 logical replication table level relication
+
+---------
+primary==
+wal_level=replica
+archive_mode=on
+archive_command=
+wal_keep_size=100
+
+example-- if create table in primary how the data flow
+from pg_wal-->it will send the wal_sender to wal_reciever and apply the target.
+
+standby===
+
+we need to take pg_basebackup
+port no
+hot_standby=on
+restore_command=archive path
+primary_connection=
+
+in data direcory need to create touch standby.sgnal
+=================practical lab==========================
+mkdir prod
+mkdir target
+mkdir archive_new
+initdb -D /app01/prod
+go to conf file-->port-7777
+wal_level=replica
+archive_mode=on
+archive_command= 'cp %p /app01/archive_new/%f'
+wal_keep_size=100
+listener_address='*';
+
+pg_ctl -D /app01/prod start
+
+pg_basebackup -p 7777 -D /app01/target -P
+
+need to configure standby
+port=8888
+hot_standby=on
+primary_conninfo= 'host=127.0.0.1 port=8888
+restore_command= 'cp /app01/archve/%f %p'
+
+touch standby.signal---
+
+chmod 0700 /app01/target
+pg_ctl -D /app01/target start
+
+psql -p 8888
+select pg_is_in_recovery(); t means standby
+
+psql -p 7777
+select pg_is_in_recovery();
+
+create table t1 as select * from pg_class;
+\dt
+show data_directory;
+select * from pg_stat_replication; replication flow
+here we need to check sent_lsn and write_lsn and replay_scn are same..
+
+psql -p 8888
+
+\dt
+
+
+
+--stop prod
+pg_ctl -D /app01/prod stop
+
+than we test it on replica but we can't crete table
+
+failover--
+pg_ctl -D /app01/target promote
+
+it means standby becomes a primary.
+
+select * from pg_start_replication;
+
+old prod conver into standby
+wal_log_hints=on ---it identify the last common checkpointn and apply the neit.
+need to do enable both side
+and restart the both servers
+
+
+fail back:-
+
+pg_rewind -D /app01/prod --source-server=127.0.0.1 post=7777
+
+
+Limited Object Support: Logical replication does not support sequences, 
+large objects, materialized views, partition root tables, and foreign tables.
+
+DML Operations Only: It only supports Data Manipulation Language (DML) operations.
+ Data Definition Language (DDL) operations like CREATE, ALTER, and DROP are not replicated.
+
+Schema Pre-definition: The schema must be defined beforehand on the subscriber.
+
+Schema Pre-definition: The schema must be defined beforehand on the subscriber. 
+This means you need to manually ensure that the schema on the subscriber matches the publisher.
+
+Conflict Resolution: Handling conflicts can be challenging, especially in bi-directional replication setups.
+
+Performance Overhead: Logical replication can introduce overhead on the server due to row-based replication,
+which can affect performance.
+==============================================
+Steps to Perform Logical Replication Upgrade
+=================================================
+Prepare the Source Database (Publisher):
+
+Ensure wal_level is set to logical in postgresql.conf.
+
+Allow replication connections in pg_hba.conf.
+
+Create a Replication User:
+
+
+CREATE ROLE replication_user WITH REPLICATION PASSWORD 'password' LOGIN;
+
+Create a Publication on the Source Database:
+
+
+CREATE PUBLICATION my_publication FOR ALL TABLES;
+
+Prepare the Target Database (Subscriber):
+
+Ensure the target database is set up and running.
+
+Create the same schema as the source database.
+
+Create a Subscription on the Target Database:
+
+
+CREATE SUBSCRIPTION my_subscription CONNECTION 'host=source_host dbname=source_db user=replication_user password=password' PUBLICATION my_publication;
+Monitor the Replication:
+
+Use pg_stat_subscription to monitor the replication status.
+
+SELECT * FROM pg_stat_subscription;
+Switch Over:
+
+Once the data is fully replicated and you’re ready to switch over, redirect your applications to the new database.
+
+
+
+================================Pg_CRON=================================
+pg_cron is a cron-based job scheduler for PostgreSQL that runs inside the database as an extension.
+ It allows you to schedule PostgreSQL commands directly from the database using the same syntax as regular cron jobs.
+ This can be incredibly useful for tasks like vacuuming tables, deleting old data, or calling stored procedures at specific times.
+
+Key Features
+Cron Syntax: Uses standard cron syntax for scheduling.
+
+Parallel Jobs: Can run multiple jobs in parallel, but only one instance of a job at a time.
+
+Database Integration: Schedules jobs directly within the PostgreSQL database.
+
+Installation
+To install pg_cron, you need to add it to the shared_preload_libraries parameter in your postgresql.conf file and restart the PostgreSQL server.
+ Then, you can create the extension:
+
+
+CREATE EXTENSION pg_cron;
+Example Usage
+Schedule a Vacuum Job:
+
+SELECT cron.schedule('nightly-vacuum', '0 3 * * *', 'VACUUM');
+Delete Old Data:
+
+
+SELECT cron.schedule('delete-old-data', '30 3 * * 6', $$DELETE FROM events WHERE event_time < now() - interval '1 week'$$);
+
+===============================================partitions============================
+Table partitioning in PostgreSQL is a powerful technique to manage large datasets efficiently. It involves dividing a large table into smaller, 
+more manageable pieces called partitions. This can significantly improve query performance and simplify maintenance tasks.
+
+Types of Partitioning
+Range Partitioning: The table is partitioned into ranges defined by a key column or set of columns. For example, you might partition by date ranges.
+
+List Partitioning: The table is partitioned by explicitly listing which key values appear in each partition.
+
+Hash Partitioning: The table is partitioned by specifying a modulus and a remainder for each partition.
+
+Creating Partitions
+Here’s how you can create a partitioned table in PostgreSQL:
+
+Create the Parent Table:
+
+
+CREATE TABLE measurement (
+    city_id         int not null,
+    logdate         date not null,
+    peaktemp        int,
+    unitsales       int
+) PARTITION BY RANGE (logdate);
+Create Partitions:
+
+
+CREATE TABLE measurement_y2019 PARTITION OF measurement
+    FOR VALUES FROM ('2019-01-01') TO ('2020-01-01');
+
+CREATE TABLE measurement_y2020 PARTITION OF measurement
+    FOR VALUES FROM ('2020-01-01') TO ('2021-01-01');
+Benefits of Partitioning
+Improved Query Performance: Queries can be faster because they only need to scan relevant partitions.
+
+Efficient Bulk Operations: Bulk loads and deletes can be accomplished by adding or removing partitions.
+
+Storage Management: Seldom-used data can be migrated to cheaper and slower storage media.
+
+
+========================Scenario: E-commerce Application=================================
+Imagine you have an e-commerce application with a PostgreSQL database. Over time, 
+as the number of users and transactions grows, you start noticing performance issues, 
+especially during peak shopping hours. Here’s how you can address these issues:
+
+Identify Slow Queries: Use the pg_stat_statements extension to identify slow-running queries.
+
+
+SELECT query, total_time, calls, mean_time
+FROM pg_stat_statements
+ORDER BY total_time DESC
+LIMIT 10;
+Optimize Indexes: Ensure that your
+
+Optimize Indexes: Ensure that your frequently queried columns are indexed. 
+For example, if users often search for products by name, create an index on the product_name column.
+
+
+CREATE INDEX idx_product_name ON products(product_name);
+Analyze and Vacuum: Regularly run ANALYZE and VACUUM to update statistics and reclaim storage.
+
+
+VACUUM ANALYZE;
+Partition Large Tables: If you have large tables, consider partitioning them. For example, partition the orders table by date.
+
+
+CREATE TABLE orders (
+    order_id SERIAL PRIMARY KEY,
+    order_date DATE NOT NULL,
+    customer_id INT,
+    total_amount NUMERIC
+) PARTITION BY RANGE (order_date);
+
+CREATE TABLE orders_2023 PARTITION OF orders
+    FOR VALUES FROM ('2023-01-01') TO ('2024-01-01');
+
+Tune Configuration Parameters: Adjust PostgreSQL configuration parameters based on your workload. For example, increase shared_buffers and work_mem to improve query performance.
+
+
+shared_buffers = 4GB
+work_mem = 64MB
+
+Monitor Performance: Use monitoring tools like pgAdmin, Prometheus, and Grafana to keep an eye on database performance and identify any bottlenecks.
+
+By following these steps, you can significantly improve the performance of your 
+PostgreSQL database and ensure a smooth experience for your users.
+
+===========================================fill factor===================
+
+In PostgreSQL, the fill factor is a storage parameter that determines how much space is left free on each page (block) of a table or index. 
+This free space is reserved for future updates to the rows on that page, which can help reduce the need for page splits and improve performance.
+
+Key Points:
+Default Value: The default fill factor is 100, meaning pages are filled completely.
+
+Adjusting Fill Factor: You can set a lower fill factor to leave more free space on each page, 
+which can be beneficial for tables or indexes that experience frequent updates.
+
+Setting Fill Factor: You can set the fill factor when creating or altering a table or index. For example:
+
+
+CREATE TABLE my_table (
+    id SERIAL PRIMARY KEY,
+    data TEXT
+) WITH (fillfactor = 70);
+
+CREATE INDEX my_index ON my_table (data) WITH (fillfactor = 70);
+Benefits:
+Reduced Page Splits: By leaving free space, you reduce the likelihood of page splits, which can be costly in terms of performance.
+
+Improved Update Performance: Updates that fit within the free space can be performed more efficiently.

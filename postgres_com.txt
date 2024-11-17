@@ -1,0 +1,1828 @@
+15.206.226.134
+18.132.94.239--vishnu
+
+https://docs.netapp.com/us-en/ontap-apps-dbs/postgres/postgres-architecture.html
+
+1-Create Linux instance in AWS/VMware
+2-login with root
+3-vi /etc/ssh/sshd_config
+remove comment from passwordAuthentication yes
+service sshd restart
+useradd postgres
+passwd postgres
+
+54.236.27.250
+ pg_ctl -D /app01/test/ -l logfile start
+ yum install wget -y
+ wget https://get.enterprisedb.com/postgresql/postgresql-9.6.18-1-linux-x64.run
+wget https://get.enterprisedb.com/postgresql/postgresql-9.2.19-1-linux-x64.run
+wget https://get.enterprisedb.com/postgresql/postgresql-10.13-1-linux-x64.run
+mkdir /Postgresql96
+mkdir /Postgresql1013
+chown postgres:postgres /Postgresql96
+chown postgres:postgres /Postgresql1013
+ chmod u+x postgresql-9.6.18-1-linux-x64.run
+ ./postgresql-9.6.18-1-linux-x64.run
+ps -ef | gre postgres
+
+
+mkdir /Postgresql1013
+chown postgres:postgres /Postgresql1013
+chmod u+x postgresql-10.13-1-linux-x64.run
+
+============================Tablespace===============
+Map a logical name to a physical location on disk
+location on disk where postgresql stores data files containing database.
+default tablespaces:
+pg_default:tablespce stores all user data
+pg_global: tablespace stores all global data
+
+you can create a new tablespace on a new disk /FS and  use it. u can also place the frequent access indexes and tables  on devise taht perfomrance fast
+
+create tablespace test location 'path';
+
+SET default_tablesapce=test;
+
+show default_tablespace
+---how to backup additional tablesapce---
+pg_basebackup --format =p --tablespace_mapping=/tmp/space2=/tmp/space_backup -D plainb
+
+
+
+\db+
+
+create database kiran tablespace test;
+
+pg_tablespace-->here all tablepsace there with symbiling link
+=====log_statment====
+it is related with error and reporting o error alongwith warning and database quries in a logfile.
+in postgresh.conf file
+options: none, ddl, mod(ddland dml), all
+
+show config_file ---find the postgresql.conf
+
+alter system set log_statment='DDL'
+
+restart the postgres
+
+check show log_statment
+
+==============pg_hba.conf=====================
+postgresh mnages internal authenticagion mechanaism as is mentioned in pg_hba.conf file
+cat pg_hba.conf | grep -i method
+method can be 1 trust 2 reject 3 md5 4 reject, 5 scram-sha-256'
+
+===============
+https://www.youtube.com/watch?v=fiVXz6IngdE&list=PLwxrtuGg5dNGv4jvDY3TEddn2HIn4-uF9&index=12
+====================SCHEMA===============
+An schema is a namespace that contains named database objects such as tables,index,view
+data types,functions,and  operators.
+schemas are like folders,and can hold tables,views,functions etc every database starts out with one
+schema, that is public schema.
+
+A postgressql database cluster contains one or more named databaes.
+a database contains one more named schemas
+schema contains tables,data types,functions and operator etc.
+2 manyy schemas in one database--> schema1, schema2
+user can access actor table(example) which is in schema1 and schmema2 with same name
+
+
+=======================user and role===================
+users,groups and roles are synonyms
+create =create role+login permission
+
+create user username with password 'password';
+
+even role also login using this
+create role kiran with login password 'password';
+
+Public schema and public role:
+
+when a new database is created, postgresql by default creates a schema names publci.
+
+all new users and roles are by default granted to this public role, and can create object in public schema.
+
+====search path====
+the serach path is a list of schema names that postgresql checks when you
+don't use a qualified anme of the database object.
+exaple: when you select form a table named testtable, postgresql looks for thids tavle
+in the schema listed in search path
+
+show search_path
+\du--
+
+===========Day1============= 
+useradd postgres
+ passwd postgres
+ yum install wget
+ wget https://get.enterprisedb.com/postgresql/postgresql-9.6.18-1-linux-x64.run
+wget https://www.pgpool.net/yum/rpms/4.1/redhat/rhel-8-x86_64/pgpool-II-pg10-4.1.0-1pgdg.rhel8.x86_64.rpm
+ chmod u+x postgresql-9.6.18-1-linux-x64.run
+ ./postgresql-9.6.18-1-linux-x64.run
+ps -ef | gre postgres
+/opt/PostgreSQL/9.6/bin/pg_ctl -D /opt/PostgreSQL/9.6/data status
+postgres=# \l
+postgres=# \dt
+postgres=# show port;
+postgres=# \dv
+postgres=# \du
+postgres=# show data_directory;
+postgres=# select current_database();
+postgres=# select current_user;
+postgres=# \conninfo
+postgres=# select datname from pg_database;
+Modify .bash_profile file
+
+PATH=$PATH:$HOME/.local/bin:$HOME/bin:/PostgreSQL1013/bin
+export PATH
+export PGUSER=postgres
+export PGDATABASE=postgres
+export PGHOST=localhost
+export PGPORT=5432
+export PGDATA=/PostgreSQL1013/data
+=======================================
+PATH=$PATH:$HOME/.local/bin:$HOME/bin:/Postgresql1013/bin
+export PATH
+export PGUSER=postgres
+export PGDATABASE=postgres
+export PGHOST=localhost
+export PGPORT=5432
+export PGDATA=/Postgresql96/data
+
+=========================================================================================
+
+
+
+CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'replicator';
+ALTER SYSTEM SET wal_level TO 'hot_standby';
+ALTER SYSTEM SET archive_mode TO 'ON';
+ALTER SYSTEM SET max_wal_senders TO '5';
+ALTER SYSTEM SET wal_keep_segments TO '10';
+ALTER SYSTEM SET listen_addresses TO '*';
+ALTER SYSTEM SET hot_standby TO 'ON';
+ALTER SYSTEM SET archive_command TO 'test ! -f /home/postgres/archivedir/%f && cp %p /home/postgres/archivedir/%f';
+
+# "local" is for Unix domain socket connections only
+local   all             all                                     md5
+# IPv4 local connections:
+host    all             all             0.0.0.0/0            md5
+# IPv6 local connections:
+host    all             all             ::1/128                 md5
+# Allow replication connections from localhost, by a user with the
+# replication privilege.
+local   replication     postgres                                md5
+host    replication     postgres        127.0.0.1/32            md5
+host    replication     postgres        ::1/128                 md5
+host     replication    replicator      15.206.226.134/32        md5
+"/Postgresql96/data/pg_hba.conf" 90L, 4264C                                
+13.233.129.189
+15.206.226.134
+pg_basebackup -h 13.233.129.189 -U replicator -p 5432 -D /Postgresql96/data -P -Xs -R
+
+
+standby_mode = 'on'
+primary_conninfo = 'user=replicator password=replicator host=13.233.129.189 port=5432 sslmode=prefer sslcompression=1 krbsrvname=postgres'
+restore_command = 'cp /home/postgres/archivedir/%f %p'
+archive_cleanup_command = 'pg_archivecleanup /home/postgres/archivedir %r'
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+create table sample(id integer);
+select relname,relfilenode from pg_class where relname='sample';
+ls -l /opt/PostgreSQL/9.6/data/base/13323/16393 
+insert into sample values(10);
+ls -l /opt/PostgreSQL/9.6/data/base/13323/16393 
+oid2name
+==================================
+mkdir pgbase
+/opt/PostgreSQL/9.6/bin/initdb -D /home/krishna/pgbase -U krishna -W
+/opt/PostgreSQL/9.6/bin/pg_ctl -D /home/krishna/pgbase status
+-Modify postgresql.conf ..
+port=5433
+pg_controldata
+
+=============================================================================================
+select name,setting from pg_settings where name='work_mem';
+create user user1 with password 'user1';
+select name,setting from pg_settings where context='postmaster';
+alter system set work_mem=default;
+===============================================================================================
+show log_min_duration_statement;
+show logging_collector;
+show log_line_prefix;
+
+create table sample(id numeric);
+insert into sample values(generate_series(1,100000));
+select count(*) from sample,pg_class;
+cd /opt/PostgreSQL/9.6/data/pg_log
+
+create database hcldb;
+revoke connect on hcldb from public;
+create user user2 password 'user2';
+\h create user
+
+create user u1 with password 'u1';
+create user u2 with password 'u2';
+create schema u1 authorization u1;
+create schema u2 authorization u2;
+===============================================
+show search_path;
+set search_path=public;
+set search_path="$user",public;
+
+grant usage on schema u2 to u1;
+
+============================================
+psql -d postgres -U postgres -h localhost -p 5432
+\df
+\dn
+\dS
+\dt
+\dt+
+\dx
+psql -f edbstore.sql
+
+psql -c "select * from dept" edbstore edbuser
+psql -c "select * from dept" -o dept.txt edbstore edbuser
+sql -c "select * from dept" -H edbstore edbuser
+
+[postgres@localhost ~]$ cat mysql.txt
+select * from emp;
+select * from dept;
+[postgres@localhost ~]$ psql -f mysql.txt -o outfile.txt -d edbstore -U edbuser
+
+edbstore=> \! cat emp.txt
+=============================================
+edbstore=> \o myemp.txt                             ===-To store output of statements into a file:
+
+edbstore=> select * from dept;
+edbstore=> select * from emp;
+edbstore=> select count(*) from customers;
+edbstore=> \o
+edbstore=> \set dno 10
+edbstore=> \unset dno
+=================================================
+Security
+========
+create user mahesh with password 'mahesh';
+create user suresh with password 'suresh';
+alter table accounts enable row level security;
+
+create policy accounts_policy on accounts using(empname=current_user);
+grant select on accounts to suresh,mahesh;
+
+select * from pg_policies;
+
+=======================================================
+pg_wal
+wal_level = replica 
+archive_mode = on                           
+archive_command = 'cp %p /home/postgres/archieve/%f'    
+
+select pg_switch_xlog();
+select pg_switch_wal();
+create extension pg_stat_statements;
+
+============================================================
+
+pg_upgrade -b /PostgreSQL96/bin -B /PostgreSQL1013/bin -d /PostgreSQL96/data -D /PostgreSQL1013/data -U postgres
+
+=========================================================================================================================
+pg_archivecleanup -n /home/postgres/archive 00000002000000000000006B     ---  dry run
+pg_archivecleanup -d /home/postgres/archive 00000002000000000000006B
+
+
+==================================================================
+create tablespace tblsptest LOCATION '/test';
+GRANT CREATE ON TABLESPACE tblsptest TO edbuser;
+
+create table sample(id integer);
+select relname,relfilenode from pg_class where relname='sample';
+ select pg_relation_filepath('sample');
+
+https://severalnines.com/database-blog/understanding-postgresql-architecture
+
+Memory:-
+Work_mem:-ORDER BY and DISTINCT,joining tables--4M
+Maintenance_work_mem--VACUUM, REINDEX---64M
+Temp_buffers--storing temporary tables--8M
+
+Shared buffer--25% of RAM--128M
+WAL buffer--Write ahead log
+Commit Log----MVCC
+
+=======================================================================================
+pg_dump -f /home/postgres/backup -d edbstore
+#psql -f /home/postgres/postgresbackup/edbstore.plain -d hcldb
+psql>\i /home/postgres/postgresbackup/edbstore.plain
+
+pg_dump -f /home/postgres/postgresbackup/edbstore.insert -d hcldb
+psql -f /home/postgres/postgresbackup/edbstore.insert -d hcldb
+
+=====
+full backup
+install latest binaries
+stop cluster
+--
+minor
+stop cluster
+upgrae minor
+star
+
+once upgrade is done, need to run auto vaccum.
+======================================================================================
+15.206.226.134
+/home/postgres/backup
+pg_dump -f /home/postgres/backup/edbstore.plain -Fp -d edbstore
+pg_dump -f /home/postgres/postgresbackup/edbstore.plain -Fp -d edbstore
+pg_dump -f ~/postgresbackup/edbstore.inserts -Fp -d edbstore --inserts
+
+pg_dump -f ~/postgresbackup/edbstore.tar -Ft -d edbstore
+pg_restore -Ft ~/ postgresbackup/edbstore.tar -C -d template1
+
+pg_dump -f ~/postgresbackup/edbstore.compressed -Fc -d edbstore 
+pg_restore -Fc ~/postgresbackup/edbstore.compressed -C -d template1
+
+pg_dump -f ~/ postgresbackup/cust.sql -t emp -d edbstore -U edbuser
+psql -f ~/ postgresbackup/cust.sql -d edbstore -U edbuser
+pg_restore -d edbstore -t products /home/postgres/postgresbackup/edbstore2.tar
+
+
+
+pg_dump -f ~/ postgresbackup/edb_dir -Fd -j 2 -d edbstore
+
+pg_dumpall -h localhost -p 5432 -f ~/postgresbackup/5432.sql -v
+psql -f ~/postgresbackup/5432.sql -h localhost -p 5432
+
+pg_restore -Ft ~/postgresbackup/edbstore.tar -l       --listing the backup content
+pg_restore -Ft ~/ postgresbackup/edbstore.tar -C -d template1
+========================================================
+select pid,datname,state,query from pg_stat_activity;
+
+select pg_terminate_backend(pid);
+============================================
+ pg_restore -U postgres --data-only -d target-db-name -t table_name /directory/path/dump-name.dump
+
+=================================================================================================================
+
+Implementing PITR:
+=======================
+Performing online base backup using pg_basebackup:
+--------------------------------------------------
+-Modify postgresql.conf
+wal_level = replica
+archive_mode = on
+max_wal_senders = 3
+-Modify pg_hba.conf
+pg_basebackup -D /home/postgres/pgbasebackup_dir/ -h localhost -p 5432 -Fp -X s
+Remove comments for last 3 lines
+
+postgres=# select pg_switch_xlog();
+postgres=# select now();
+edbstore=> drop table sample;
+[postgres@localhost ~]$ pg_ctl stop
+[postgres@localhost data]$ cp -rp ~/pgbasebackup_dir/* .
+[postgres@localhost data]$ cat recovery.conf 
+restore_command='cp /home/postgres/arch_dest/%f %p'
+recovery_target_time='2018-03-21 17:38:14.773188+05:30'
+----recovery_target_time='lattest'
+[postgres@localhost data]$ pg_ctl start
+bstore=> select * from sample;
+edbstore=> select * from sample1;
+
+====================================================
+
+Memory:-
+Work_mem:-ORDER BY and DISTINCT,joining tables--4M
+Maintenance_work_mem--VACUUM, REINDEX---64M
+Temp_buffers--storing temporary tables--8M
+
+Shared buffer--25% of RAM--128M
+WAL buffer--Write ahead log
+Commit Log----MVCC
+
+
+
+
+
+postgres=# show work_mem;
+ work_mem
+----------
+ 4MB
+(1 row)
+
+alter user amar set work_mem=8192;
+
+For all users--need to change in postgresql.conf file in DATA directory.
+
+====================================================================================================================================
+Replication using log shipping method:
+--------------------------------------
+- Modify postgresql.conf
+wal_level = replica
+archive_mode = on
+archive_command = 'cp %p /home/postgres/stand1_arch/%f'
+..
+[postgres@localhost ~]$ mkdir standby1
+[postgres@localhost ~]$ psql -c "select pg_start_backup('standby1');"
+[postgres@localhost ~]$ cp -rp /PostgreSQL96/data/* /home/postgres/standby/
+[postgres@localhost ~]$ psql -c "select pg_stop_backup();"
+[postgres@localhost standby1]$ rm postmaster.pid
+[postgres@localhost standby1]$ vi postgresql.conf
+...
+port = 5435
+hot_standby = on
+...
+[postgres@localhost standby1]$ cat recovery.conf
+standby_mode=on
+restore_command='cp /home/postgres/archieve/%f %p'
+trigger_file='/home/postgres/standby/touch_for_failover'
+[postgres@localhost standby1]$ chmod -R 0700 /home/postgres/standby
+[postgres@localhost standby1]$ pg_ctl -D /home/postgres/standby1 start
+[postgres@localhost standby1]$ pg_ctl -D /home/postgres/standby1 status
+[postgres@localhost standby1]$ psql -p 5435
+postgres=# select pg_switch_xlog();
+
+To force failover (switch standby1 as master server)
+[postgres@localhost ~]$ touch /home/postgres/standby1/touch_for_failover
+
+edbstore=> select pg_is_in_recovery(); 
+======================================================================================================================
+-Modify postgresql.conf...
+wal_level = logical
+archive_mode = on...
+max_wal_senders = 5
+wal_keep_segments = 50
+pg_ctl restart
+pg_basebackup -D ~/standby2 -h localhost -p 5430 -X s -R
+cat recovery.conf
+standby_mode = 'on'
+primary_conninfo = 'user=postgres password=postgres host=localhost port=5432 sslmode=prefer sslcompression=1 krbsrvname=postgres'
+trigger_file = '/home/postgres/standby2/touch_for_failover'
+
+pg_ctl -D ~/standby2 start
+select pg_is_in_recovery();
+
+========================================================================================
+show work_mem;
+select name,setting from pg_settings where name='work_mem';
+set work_mem=8192;
+alter user user1 set work_mem=2048;
+alter system set work_mem=3072;
+alter database testdb set work_mem=1024;
+alter system reset work_mem;
+alter system set work_mem=default;
+select pg_reload_conf();
+
+select name,setting from pg_settings where context='postmaster';
+============================================================================================
+show log_min_duration_statement;
+show logging_collector;
+show log_line_prefix;
+create table sample(id numeric);
+insert into sample values(generate_series(1,100000));
+select count(*) from sample;
+select count(*) from sample,pg_class;
+
+========================================================
+revoke connect on hcldb from public;
+grant connect on database hcldb to user2;
+
+\dS    --
+\dt    -- available tables
+\dt+   --tables in size also
+\dx    --installed extensions
+\du    --roles/user
+\df    --functions
+\dn    --schemas
+\l     --databases
+\l+    --databases -size
+
+oid2name--os command---list all databases
+
+[postgres@localhost ~]$ cat .pgpass
+#HOST:PORT:DATABASE:USERNAME:PASSWORD
+localhost:5432:*:postgres:postgres
+localhost:5432:edbstore:edbuser:edbuser
+[postgres@localhost ~]$ chmod 0600 .pgpass
+
+postgresql.conf
+log_destination = 'stderr' 
+logging_collector = on 
+log_directory = 'pg_log'  
+log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log' 
+log_file_mode = 0600 
+log_rotation_age = 1d
+log_rotation_size = 10MB            
+log_min_duration_statement = 200
+=====================================
+ create extension pg_stat_statements;
+postgresql.conf --shared_preload_libraries   ---  pg_stat_statements
+pg_ctl restart
+run 2-3 query and then run the below command.
+select query,total_time from pg_stat_statements;
+===============================================================================
+Replication using Replication Slots:
+------------------------------------
+18.209.104.254
+[postgres@localhost ~]$ mkdir repslotstandby
+[postgres@localhost ~]$ pg_basebackup -D ~/repslotstandby/ -l localhost -p 5432 -X s -R
+-Modify postgresql.conf file:
+wal_level = logical
+max_wal_senders = 5
+max_replication_slots = 2
+wal_keep_segments = 50
+postgres=# select pg_create_physical_replication_slot('primary_phy_slot');
+
+[postgres@localhost ~]$ cd repslotstandby/
+-Modify postgresql.conf
+..
+port = 5438
+hot_standby = on
+[postgres@localhost repslotstandby]$ cat recovery.conf 
+standby_mode = 'on'
+primary_conninfo = 'user=postgres password=postgres host=localhost port=5432 sslmode=prefer sslcompression=1 krbsrvname=postgres application_name=repslotstandby'
+primary_slot_name = 'primary_phy_slot'
+trigger_file = '/home/postgres/repslotstandby/touch_for_failover'
+[postgres@localhost ~]$ chmod -R 0700 repslotstandby
+[postgres@localhost ~]$ pg_ctl -D /home/postgres/repslotstandby/ start
+postgres=# select * from pg_replication_slots;
+postgres=# select * from pg_stat_replication;
+********************************************************************
+edbstore=> select count(*) from customers;
+edbstore=> select pg_size_pretty(pg_relation_size('customers'));
+edbstore=> select gender,count(*) from customers
+edbstore=> update customers set gender='f' where gender='F';
+edbstore=> select pg_size_pretty(pg_relation_size('customers'));
+edbstore=> select count(*) from customers;
+edbstore=> update customers set gender='m' where gender='M';
+edbstore=> select pg_size_pretty(pg_relation_size('customers'));
+
+edbstore=> \x
+Expanded display is on.
+edbstore=> select * from pg_stat_user_tables;
+edbstore=> select * from pg_stat_user_tables where relname='customers';
+
+edbstore=> select pg_size_pretty(pg_relation_size('customers'));
+-[ RECORD 1 ]--+--------
+pg_size_pretty | 6072 kB
+
+edbstore=> select relname,relfilenode from pg_class where relname='customers';
+-[ RECORD 1 ]----------
+relname     | customers
+relfilenode | 17737
+
+edbstore=> vacuum customers;
+VACUUM
+edbstore=> select relname,relfilenode from pg_class where relname='customers';
+-[ RECORD 1 ]----------
+relname     | customers
+relfilenode | 17737
+
+edbstore=> select pg_size_pretty(pg_relation_size('customers'));
+edbstore=> vacuum full customers;
+edbstore=> select pg_size_pretty(pg_relation_size('customers'));
+edbstore=> select relname,relfilenode from pg_class where relname='customers';
+edbstore=> select relname,relfilenode from pg_class where relfilenode=17737;
+Pertable thresholds:
+--------------------
+
+edbstore=> alter table customers set (autovacuum_enabled=true,autovacuum_vacuum_threshold=10,autovacuum_analyze_threshold=20);
+ALTER TABLE
+
+Reindexing:
+----------
+edbstore=> reindex table customers;
+edbstore=> \c postgres postgres
+postgres=# reindex database postgres;
+==============================================================
+select * from pg_stat_wal_receiver;
+select pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn(), pg_last_xact_replay_timestamp();
+select * from pg_stat_replication;
+select * from pg_replication_slots;
+===============================================================
+create table sample(id serial,remarks varchar);
+insert into sample values(generate_series(1,100000),'Sample');
+insert into sample values(generate_series(100001,1000000),'Sample');
+
+explain select * from sample where id=100001;
+create index sample_id_idx on sample(id);
+explain select * from sample where id=100001;
+
+=====================================
+select pg_size_pretty(pg_relation_size('customers'));
+update customers set gender='f' where gender='F';
+select pg_size_pretty(pg_relation_size('customers'));
+select relname,relfilenode from pg_class where relname='customers';
+vacuum customers;
+select pg_size_pretty(pg_relation_size('customers'));
+select relname,relfilenode from pg_class where relname='customers';
+vacuum full customers;
+select pg_size_pretty(pg_relation_size('customers'));
+select relname,relfilenode from pg_class where relname='customers';
+
+select relname,relfilenode from pg_class where relfilenode=17737;
+alter table customers set (autovacuum_enabled=true,autovacuum_vacuum_threshold=10,autovacuum_analyze_threshold=20);
+
+reindex table customers;
+reindex database  edbstore;
+select pg_database_size('edbstore');
+
+SELECT blocked_locks.pid         AS blocked_pid,
+       blocked_activity.usename  AS blocked_user,
+	   now() - blocked_activity.query_start
+		                         AS blocked_duration,
+       blocking_locks.pid        AS blocking_pid,
+       blocking_activity.usename AS blocking_user,
+	   now() - blocking_activity.query_start
+                                 AS blocking_duration,
+       blocked_activity.query    AS blocked_statement,
+       blocking_activity.query   AS blocking_statement
+FROM pg_catalog.pg_locks AS blocked_locks
+JOIN pg_catalog.pg_stat_activity AS blocked_activity
+    ON blocked_activity.pid = blocked_locks.pid
+JOIN pg_catalog.pg_locks AS blocking_locks 
+    ON blocking_locks.locktype = blocked_locks.locktype
+        AND blocking_locks.DATABASE IS NOT DISTINCT FROM blocked_locks.DATABASE
+        AND blocking_locks.relation IS NOT DISTINCT FROM blocked_locks.relation
+        AND blocking_locks.page IS NOT DISTINCT FROM blocked_locks.page
+        AND blocking_locks.tuple IS NOT DISTINCT FROM blocked_locks.tuple
+        AND blocking_locks.virtualxid IS NOT DISTINCT FROM blocked_locks.virtualxid
+        AND blocking_locks.transactionid IS NOT DISTINCT FROM blocked_locks.transactionid
+        AND blocking_locks.classid IS NOT DISTINCT FROM blocked_locks.classid
+        AND blocking_locks.objid IS NOT DISTINCT FROM blocked_locks.objid
+        AND blocking_locks.objsubid IS NOT DISTINCT FROM blocked_locks.objsubid
+        AND blocking_locks.pid != blocked_locks.pid
+JOIN pg_catalog.pg_stat_activity AS blocking_activity
+    ON blocking_activity.pid = blocking_locks.pid
+WHERE NOT blocked_locks.granted;
+
+=========================================
+select pid, 
+       usename, 
+       pg_blocking_pids(pid) as blocked_by, 
+       query as blocked_query
+from pg_stat_activity
+where cardinality(pg_blocking_pids(pid)) > 0;
+======================================================
+SELECT * from lock_monitor;
+
+SELECT
+    activity.pid,
+    activity.usename,
+    activity.query,
+    blocking.pid AS blocking_id,
+    blocking.query AS blocking_query
+FROM pg_stat_activity AS activity
+JOIN pg_stat_activity AS blocking ON blocking.pid = ANY(pg_blocking_pids(activity.pid));
+===============================================================================================
+https://aws.amazon.com/premiumsupport/knowledge-center/dms-sct-install-drivers-windows/
+
+
+explin plan:
+
+explain (analyze, verbose, buffers,wal, timing, summary) select * from emp;   theses are all options..
+
+
+
+
+
+
+==========================Kernel==================
+
+shared memory and semaphores
+
+shmmax
+shmmin
+shmall
+shmseg
+shmmni
+semmni----importent for max_connection,vccum,wal
+semmns---same
+====
+shared memory size settings can be changed via the sysctl interfacd.
+sysctl -w kernel.shmmax=8979283838235937839933
+sysctl -w kernel.shmmin=
+
+restart server.
+====
+out of memory: killed process 12345(postgre).
+postgres process has been terminated due to memroy pressure
+lthough existing database connection will continue to funtional normally
+no new connections will be accepted
+to recover, postgresql will need to be restated.
+
+increasing the swap space of the operating system .
+
+huge pages: start postgres without huge pages and check below for estimation
+head -1 $PGDTA/postmaster.pid
+value come
+$pmap value | awk '/rw-s/ && /zero/ {print $2)
+
+$grep ^Hugepagesize /proc/meminfo
+
+pmap values give esttimate value for hugepages.
+
+sysctl -w vm.nr_hugepages=estimate value.
+
+===================INdexes=============================
+b-tree: B tree indexes are the default indexes option when creating an index
+without specifying the type.
+they are very flexible wheb it comes to operators and data types, which makes good choice many applications.
+if u donot specify thne it is b tree index.
+create inedex concurrently stuid_id_index on student using btree(stud_id')
+
+\di+
+
+2 Hash index: hash index can only handle simple equality comparisons.
+the query planner will consider using a hash index wheever an indexe column
+is involved in a comparison using the = oparator.
+
+create index concurrently stid_id_index on student hash(stuid_id);
+
+\di +
+
+3 GIN generalized inverted index
+
+GIN index is most usefule when we have data types that contain multiple values in a singlie column.
+gin index wasl refered to as a generalized index.
+
+create index gin_stud_index on student using gin (to_tsvector('Eng;ish',stud_name));GI
+
+GIST: generalized inverted search tree:
+
+index is useful when our data is in geometrical format.
+it is also known as the generalized search tree.
+
+
+SP-GIST INdex: space partitioned generalized inverted search tree)
+sp-gist index referred to as space partitioed generalized inverted search tree.
+an SP-gist index is most useful when our
+
+ data is a clustering element or in clustered format.
+
+6 BRIN(block range INdexes)
+
+BRIN index are good to have when a large number of natural clustered format data is there.
+BRIN index also called block range indexes
+
+create index brin_stud_id on student using brin (stud_id) with (pages_per_range=1);
+
+===============================PostgreSQL log====================
+
+supports 3 types
+stderr
+csvlog
+syslog
+
+log_destination
+
+stderr /log/postgresql.log
+csvlog loh/postgresql.csv
+
+logging_collectot: show logging_collector by default is on.
+parameter enables the logging collector, which is background process.
+
+log_directory: show log_directory ---logs location
+
+log_filename:--
+log_file_mode:-this is 0600 read and write 
+log_rotation_age:-by default 1 day. after one day it will create new one
+loh_rotation_size:
+log_truncate_on_rotation:-
+syslog_facility:
+
+log_min_message:--controls which message lelvels are written to the server log
+
+log_min_error_statment: which statment cause the issue
+log_min_duration_statment:
+application_name: application name should conatain ACII chracters
+log_checkpoints
+log_connections----each connection is updated in log
+log_disconnections
+log_duration:
+===================================Vaccum and auto vacuum=============
+Vaccum will remove dead tuples both form the table and indexes. it will not return the 
+disk space back to the OS, but it will make it usable for new rows.
+
+don't run at transaction when tranction time it will take higher CPU and i/0 usage on the systemm.
+
+you may run it only once a day/week when leass load on database, in which case you will
+probably accumulate more dead tuples.
+
+Vaccum full:
+it is reclaims storage to the OS
+causes exclusive lock on table ,blocking all operation(including select
+a copy of the table is created,doubling the storage requirement
+consider only if u have enough storage.
+
+--query planner relies on statistical information. statistics are gathered by 
+the analyze command. updates of statistics are more useful for heavily updated tables.
+scheduled a database wide analyze once a day at a low usage time of day.
+
+==acutovaccum:
+vaccum done autometaically by the database is called autovaccum.
+select name,setting from pg_settings where name='autovacuum';
+autovaccume=on by default on
+log_autovaccum_min_duration=-1 disable,0 log all action
+autovaccum_max_workesrs=3 no of processs
+autovaccum_naptime =1 time b/w autovacuum runs
+autovacuum_vacuum_threhold=50 min number of row updates before vacuu
+autovaccum_analyze_threhold=50 min number of row updates before analyze
+autovacuum_vacuum_scale=0.2 fraction of table size before vacuum
+autovacuum_ana;yze_scale_factore=0.1 fraction of table size before analyze
+auto_vaccum_freeze_max_size=200000000 maximum xid age before forced avvcuum
+
+====================================Bloating==========================
+when an existing record in a database is updated.
+it results in two actions.
+creation of new record it will update
+existing records results in a dead tuple
+bloating happens when rate of generation of tuples is more than rate of getting the dead tuples cleaned is known as bloat
+
+bloating scenario
+
+application is updating or deleting records as of 100 record/min
+which resilts in 100 dead tuples
+assume autocleans up let us say 90 records/min
+10 records are generated as dead tuple and leads to bloating.
+
+options for bloat removal
+-vacuum full
+psql
+\c dbanmae
+vaccum(verbose,analyze) ---full database
+vacuum full tablename
+
+
+-pg_repack
+/usr/psal-12/bin/pg_repack -d dbname -U postgres
+
+note creating a fresh copy of table without 'dead' sapce and replacing old one with n
+new(just as full vacuum does)
+
+==========================commands====================
+postgres=# try \?
+General
+  \copyright             show PostgreSQL usage and distribution terms
+  \crosstabview [COLUMNS] execute query and display results in crosstab
+  \errverbose            show most recent error message at maximum verbosity
+  \g [(OPTIONS)] [FILE]  execute query (and send results to file or |pipe);
+                         \g with no arguments is equivalent to a semicolon
+  \gdesc                 describe result of query, without executing it
+  \gexec                 execute query, then execute each value in its result
+  \gset [PREFIX]         execute query and store results in psql variables
+  \gx [(OPTIONS)] [FILE] as \g, but forces expanded output mode
+  \q                     quit psql
+  \watch [SEC]           execute query every SEC seconds
+
+Help
+  \? [commands]          show help on backslash commands
+  \? options             show help on psql command-line options
+  \? variables           show help on special variables
+  \h [NAME]              help on syntax of SQL commands, * for all commands
+
+Query Buffer
+  \e [FILE] [LINE]       edit the query buffer (or file) with external editor
+  \ef [FUNCNAME [LINE]]  edit function definition with external editor
+  \ev [VIEWNAME [LINE]]  edit view definition with external editor
+  \p                     show the contents of the query buffer
+  \r                     reset (clear) the query buffer
+  \w FILE                write query buffer to file
+
+Input/Output
+  \copy ...              perform SQL COPY with data stream to the client host
+  \echo [-n] [STRING]    write string to standard output (-n for no newline)
+  \i FILE                execute commands from file
+  \ir FILE               as \i, but relative to location of current script
+  \o [FILE]              send all query results to file or |pipe
+  \qecho [-n] [STRING]   write string to \o output stream (-n for no newline)
+  \warn [-n] [STRING]    write string to standard error (-n for no newline)
+
+Conditional
+  \if EXPR               begin conditional block
+  \elif EXPR             alternative within current conditional block
+  \else                  final alternative within current conditional block
+  \endif                 end conditional block
+
+Informational
+  (options: S = show system objects, + = additional detail)
+  \d[S+]                 list tables, views, and sequences
+  \d[S+]  NAME           describe table, view, sequence, or index
+  \da[S]  [PATTERN]      list aggregates
+  \dA[+]  [PATTERN]      list access methods
+  \dAc[+] [AMPTRN [TYPEPTRN]]  list operator classes
+  \dAf[+] [AMPTRN [TYPEPTRN]]  list operator families
+  \dAo[+] [AMPTRN [OPFPTRN]]   list operators of operator families
+  \dAp[+] [AMPTRN [OPFPTRN]]   list support functions of operator families
+  \db[+]  [PATTERN]      list tablespaces
+  \dc[S+] [PATTERN]      list conversions
+  \dC[+]  [PATTERN]      list casts
+  \dd[S]  [PATTERN]      show object descriptions not displayed elsewhere
+  \dD[S+] [PATTERN]      list domains
+  \ddp    [PATTERN]      list default privileges
+  \dE[S+] [PATTERN]      list foreign tables
+  \des[+] [PATTERN]      list foreign servers
+  \det[+] [PATTERN]      list foreign tables
+  \deu[+] [PATTERN]      list user mappings
+  \dew[+] [PATTERN]      list foreign-data wrappers
+  \df[anptw][S+] [FUNCPTRN [TYPEPTRN ...]]
+                         list [only agg/normal/procedure/trigger/window] functions
+  \dF[+]  [PATTERN]      list text search configurations
+  \dFd[+] [PATTERN]      list text search dictionaries
+  \dFp[+] [PATTERN]      list text search parsers
+  \dFt[+] [PATTERN]      list text search templates
+  \dg[S+] [PATTERN]      list roles
+  \di[S+] [PATTERN]      list indexes
+  \dl                    list large objects, same as \lo_list
+  \dL[S+] [PATTERN]      list procedural languages
+  \dm[S+] [PATTERN]      list materialized views
+  \dn[S+] [PATTERN]      list schemas
+  \do[S+] [OPPTRN [TYPEPTRN [TYPEPTRN]]]
+                         list operators
+  \dO[S+] [PATTERN]      list collations
+  \dp     [PATTERN]      list table, view, and sequence access privileges
+  \dP[itn+] [PATTERN]    list [only index/table] partitioned relations [n=nested]
+  \drds [ROLEPTRN [DBPTRN]] list per-database role settings
+  \dRp[+] [PATTERN]      list replication publications
+  \dRs[+] [PATTERN]      list replication subscriptions
+  \ds[S+] [PATTERN]      list sequences
+  \dt[S+] [PATTERN]      list tables
+  \dT[S+] [PATTERN]      list data types
+  \du[S+] [PATTERN]      list roles
+  \dv[S+] [PATTERN]      list views
+  \dx[+]  [PATTERN]      list extensions
+  \dX     [PATTERN]      list extended statistics
+  \dy[+]  [PATTERN]      list event triggers
+  \l[+]   [PATTERN]      list databases
+  \sf[+]  FUNCNAME       show a function's definition
+  \sv[+]  VIEWNAME       show a view's definition
+  \z      [PATTERN]      same as \dp
+
+Formatting
+  \a                     toggle between unaligned and aligned output mode
+  \C [STRING]            set table title, or unset if none
+  \f [STRING]            show or set field separator for unaligned query output
+  \H                     toggle HTML output mode (currently off)
+  \pset [NAME [VALUE]]   set table output option
+                         (border|columns|csv_fieldsep|expanded|fieldsep|
+                         fieldsep_zero|footer|format|linestyle|null|
+                         numericlocale|pager|pager_min_lines|recordsep|
+                         recordsep_zero|tableattr|title|tuples_only|
+                         unicode_border_linestyle|unicode_column_linestyle|
+                         unicode_header_linestyle)
+  \t [on|off]            show only rows (currently on)
+  \T [STRING]            set HTML <table> tag attributes, or unset if none
+  \x [on|off|auto]       toggle expanded output (currently off)
+
+Connection
+  \c[onnect] {[DBNAME|- USER|- HOST|- PORT|-] | conninfo}
+                         connect to new database (currently "postgres")
+  \conninfo              display information about current connection
+  \encoding [ENCODING]   show or set client encoding
+  \password [USERNAME]   securely change the password for a user
+
+Operating System
+  \cd [DIR]              change the current working directory
+  \setenv NAME [VALUE]   set or unset environment variable
+  \timing [on|off]       toggle timing of commands (currently off)
+  \! [COMMAND]           execute command in shell or start interactive shell
+
+Variables
+  \prompt [TEXT] NAME    prompt user to set internal variable
+  \set [NAME [VALUE]]    set internal variable, or list all if no parameters
+  \unset NAME            unset (delete) internal variable
+
+Large Objects
+  \lo_export LOBOID FILE
+  \lo_import FILE [COMMENT]
+  \lo_list
+  \lo_unlink LOBOID      large object operations
+
+=================================================================Replication====================================
+-- Run this on hot standby server 
+
+postgres=# select pg_is_wal_replay_paused();
+
+pg_is_wal_replay_paused
+-------------------------
+f
+
+ 
+
+-- If the output is f then, streaming recovery is running, if t means not running.
+
+--------------------------------
+-- Run on this primary server for outgoing replication details
+
+postgres=# select * from pg_stat_replication;
+-[ RECORD 1 ]----+---------------------------------
+pid              | 18556
+usesysid.        | 10
+usename          | enterprisedb
+application_name | walreceiver
+client_addr      | 10.20.76.12
+client_hostname  |
+client_port      | 44244
+backend_start    | 27-MAY-21 13:56:30.131681 +03:00
+backend_xmin     |
+state            | streaming
+sent_lsn.        | 0/401F658
+write_lsn        | 0/401F658
+flush_lsn        | 0/401F658
+replay_lsn.      | 0/401F658
+write_lag        |
+flush_lag        |
+replay_lag.      |
+sync_priority.   | 0
+sync_state       | async
+
+----------------
+==============================-- Run on standby database ================================
+
+postgres=# select pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn(), pg_last_xact_replay_timestamp();
+-[ RECORD 1 ]-----------------+---------------------------------
+pg_last_wal_receive_lsn       | 0/401F658
+pg_last_wal_replay_lsn        | 0/401F658
+pg_last_xact_replay_timestamp | 27-MAY-21 16:26:18.704299 +03:00
+
+postgres=# select * from pg_stat_wal_receiver;
+-[ RECORD 1 ]---------+------------------------------------------------------------------------
+pid                   | 7933
+status                | streaming
+receive_start_lsn     | 0/4000000
+receive_start_tli     | 1
+received_lsn          | 0/401F658
+received_tli          | 1
+last_msg_send_time.   | 27-MAY-21 20:29:39.599389 +03:00
+last_msg_receipt_time | 27-MAY-21 20:29:39.599599 +03:00
+latest_end_lsn.       | 0/401F658
+latest_end_time       | 27-MAY-21 16:31:20.815183 +03:00
+slot_name             |
+sender_host           | 10.20.30.40
+sender_port           | 5444
+conninfo | user=enterprisedb passfile=/bgidata/enterprisedb/.pgpass dbname=replication host=10.20.30.40
+ port=5444 fallback_application_name=walreceiver sslmode=prefer sslcompression=0 krbsrvname=postgres target_session_attrs=any
+------------------------------------------------
+
+-- To stop/pause recovery on replication server(standby)
+
+postgres=# select pg_wal_replay_pause();
+pg_wal_replay_pause
+---------------------
+
+(1 row)
+
+postgres=# select pg_is_wal_replay_paused();
+pg_is_wal_replay_paused
+-------------------------
+t
+(1 row)
+
+-- To Resume recovery on replication server(standby)
+
+postgres=# select pg_wal_replay_resume();
+pg_wal_replay_resume
+----------------------
+
+(1 row)
+
+postgres=# select pg_is_wal_replay_paused();
+pg_is_wal_replay_paused
+-------------------------
+f
+(1 row)
+-----------------------
+
+====================- Find lag in bytes( run on standby)=======================
+
+postgres# SELECT pg_wal_lsn_diff(sent_lsn, replay_lsn) from pg_stat_replication;
+
+--- Find lag in seconds( run on standby)
+
+postgres# SELECT CASE WHEN pg_last_wal_receive_lsn() =
+pg_last_wal_replay_lsn()
+THEN 0 ELSE
+EXTRACT (EPOCH FROM now() - pg_last_xact_replay_timestamp()) END AS lag_seconds;
+
+-----------------------
+
+-- Check existing replication slot details
+
+postgres# SELECT redo_lsn, slot_name,restart_lsn, active,
+round((redo_lsn-restart_lsn) / 1024 / 1024 / 1024, 2) AS GB_lag
+FROM pg_control_checkpoint(), pg_replication_slots;
+
+-- Create replication slots
+
+postgres#SELECT pg_create_physical_replication_slot('slot_one');
+
+-- Drop unused replication slots
+
+postgres=# SELECT pg_drop_replication_slot('slot_one');
+-------------------------------------
+
+select * from pg_stat_subscription;
+
+=========================================================================================
+                          TABLESPACE MANAGEMENT
+=========================================================================================
+VIEW TABLESPACE INFO IN POSTGRES:
+
+ 
+
+postgres=# select * from pg_tablespace;
+
+(OR)
+
+postgres=# \db+
+
+(or)
+
+-- For getting size of specific tablespace:
+
+postgres=# select pg_size_pretty(pg_tablespace_size('ts_dbaclass'));
+
+pg_size_pretty
+
+----------------
+
+96 bytes
+
+(1 row)
+
+Pre-configured tablespaces:( these are default tablespaces)
+
+Pg_global - > PGDATA/global - > used for cluster wide table and system catalog
+Pg_default - > PGDATA/base directory - > it stores databases and relations
+
+CREATE TABLESPACE:
+postgres=# create tablespace ts_postgres location '/Library/PostgreSQL/TEST/TS_POSTGRES';
+CREATE TABLESPACE
+
+RENAME TABLESPACE:
+postgres=# alter tablespace ts_postgres rename to ts_dbaclass;
+ALTER TABLESPACE
+
+DROP TABLESPACE:
+
+postgres=# drop tablespace ts_dbaclass;
+DROP TABLESPACE
+
+ 
+
+<<Before dropping tablespace make sure it is emptry>>
+
+postgres=# show default_tablespace;
+default_tablespace
+--------------------
+
+(1 row)
+<<<< If output is blank means default is pg_default tablespace>>>>>
+
+--To change the default tablespace at database level:
+
+postgres=# alter system set default_tablespace=ts_postgres;
+ALTER SYSTEM
+
+postgres=# select pg_reload_conf();
+pg_reload_conf
+----------------
+t
+(1 row)
+
+postgres=# show default_tablespace;
+default_tablespace
+--------------------
+ts_postgres
+(1 row)
+
+postgres=# SELECT name, setting FROM pg_settings where name='default_tablespace';
+name | setting
+--------------------+-------------
+default_tablespace | ts_postgres
+(1 row)
+
+ 
+
+Steps to change default tablespace at session level:
+
+postgres=# set default_tablespace=ts_postgres;
+SET
+
+-----------------
+VIEW DEFAULT TEMP TABLESPACE:
+dbaclass=# SELECT name, setting FROM pg_settings where name='temp_tablespaces';
+name | setting
+------------------+---------
+temp_tablespaces |
+(1 row)
+
+dbaclass=# show temp_tablespaces
+dbaclass-# ;
+temp_tablespaces
+------------------
+
+(1 row)
+
+CHANGE DEFAULT TEMP TABLESPACE
+
+postgres=# alter system set temp_tablespaces=TS_TEMP;
+ALTER SYSTEM
+
+postgres=# select pg_reload_conf();
+pg_reload_conf
+----------------
+t
+(1 row)
+
+postgres=# show temp_tablespaces;
+temp_tablespaces
+------------------
+ts_temp
+(1 row)
+
+postgres=# SELECT name, setting FROM pg_settings where name='temp_tablespaces';
+name | setting
+------------------+---------
+temp_tablespaces | ts_temp
+(1 row)
+
+-- Change ownership of tablespace ts_postgres to user dev_admin
+
+postgres# alter tablespace ts_postgres owner to dev_admin;
+
+postgres# \db+
+
+Move table/index to different tablespace
+
+-- move table to different tablespace
+prod_crm=# alter table TEST8 set tablespace pg_crm;
+ALTER TABLE
+
+-- Move index to different tablespace
+
+prod_crm=# alter index TEST_ind set tablespace pg_crm;
+ALTER TABLE
+
+ 
+
+----------------------move database to new tablespace-------------------------
+postgres=#  alter database prod_crm set tablespace crm_tblspc;
+
+Before running this. make sure there are no active connections in the database.
+You can kill the existing session using below query.
+
+postgres# select pg_terminate_backend(pid) from pg_stat_activity where datname='DB_NAME';
+
+--------------------------------------=====================----------------------------
+
+===================================AUDITING & SECURITY======================================
+-- This provides a summary of contents of client authentication config file pg_hba.conf 
+
+postgres=# select * from pg_hba_file_rules;
+line_number | type | database | user_name | address | netmask | auth_method | options | error
+-------------+-------+---------------+-----------+---------------+-----------------------------------------+-------------+---------+-------
+80 | local | {all} | {all} | | | md5 | |
+82 | host | {all} | {all} | 127.0.0.1 | 255.255.255.255 | ident | |
+84 | host | {all} | {all} | ::1 | ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff | ident | |
+85 | host | {all} | {all} | 172.21.19.148 | 255.255.255.255 | trust | |
+88 | local | {replication} | {all} | | | peer | |
+89 | host | {replication} | {all} | 127.0.0.1 | 255.255.255.255 | ident | |
+90 | host | {replication} | {all} | ::1 | ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff | ident | |
+(7 rows)
+--
+
+-- Check auditing setting :
+
+postgres=# show log_statement;
+log_statement
+---------------
+none
+
+-- For logging all ddl activites:
+
+postgres=# alter system set log_statement=ddl;
+ALTER SYSTEM
+postgres=# select pg_reload_conf();
+pg_reload_conf
+----------------
+t
+
+-- For logging all DDL DML activities:
+
+postgres=# alter system set log_statement=mod;
+ALTER SYSTEM
+postgres=# select pg_reload_conf();
+pg_reload_conf
+----------------
+t
+
+-- For logging all statement( i.e ddl , dml and even select statements)
+
+postgres=# alter system set log_statement='all';
+ALTER SYSTEM
+postgres=# select pg_reload_conf();
+pg_reload_conf
+----------------
+t
+-----
+- Enable audit for connection and disconnection to postgres.
+
+postgres=# select name,setting from pg_settings where name in ('log_disconnections','log_connections');
+name                | setting
+--------------------+---------
+log_connections     | off
+log_disconnections  | off
+
+postgres=# alter system set log_disconnections=off;
+ALTER SYSTEM
+
+postgres=# alter system set log_connections=on;
+ALTER SYSTEM
+
+postgres=# select pg_reload_conf();
+pg_reload_conf
+----------------
+t
+
+Now all log on and log off will logged in the log file.
+
+<<<<<<<<< cd /Library/PostgreSQL/10/data/log/ >>>>>>>
+2020-07-06 12:51:39.042 IST [10212] LOG: connection received: host=[local]
+2020-07-06 12:51:53.416 IST [10215] LOG: connection received: host=[local]
+2020-07-06 12:51:53.420 IST [10215] LOG: connection authorized: user=postgres database=postgres
+===
+==================================================https://dbaclass.com/postgres-db-scripts/==================================================
+
+========================================================================================================
+                                   MAINTENANCE
+========================================================================================================
+-- Analyze stats for a table testanalyze(schema is public)
+
+dbaclass=# analyze testanalyze;
+ANALYZE
+
+-- For analyzing selected columns for emptab table ( schema is dbatest)
+
+dbaclass=# analyze dbatest.emptab (datname,datdba);
+ANALYZE
+
+dbaclass=# select relname,reltuples from pg_class where relname in ('testanalyze','emptab');
+relname      | reltuples
+-------------+-----------
+testanalyze  | 4
+emptab       | 4
+(2 rows)
+
+dbaclass=# select schemaname,relname,analyze_count,last_analyze,last_autoanalyze from pg_stat_user_tables where relname in ('testanalyze','emptab');
+schemaname  | relname     | analyze_count | last_analyze                     | last_autoanalyze
+------------+-------------+---------------+----------------------------------+------------------
+public      | testanalyze | 1             | 2020-07-21 17:00:49.687053+05:30 |
+dbatest     | emptab      | 1             | 2020-07-21 17:10:01.111517+05:30 |
+(2 rows)
+
+---Analyze command with verbose command
+
+dbaclass=# analyze verbose dbatest.emptab (datname,datdba);
+
+INFO:  analyzing "dbatest.emptab"
+INFO:  "emptab": scanned 1 of 1 pages, containing 4 live rows and 0 dead rows; 4 rows in sample, 4 estimated total rows
+ANALYZE
+
+---Analyze tables in the current schema that the user has access to.
+
+ 
+
+dbaclass=# analyze ;
+ANALYZE
+
+NOTE: ANALYZE requires only a read lock on the target table, so it can run in parallel with other activity on the table.
+----------
+VACUUM - >  REMOVES DEAD ROWS, AND MARK THEM FOR REUSE, BUT IT DOESN’T RETURN THE SPACE TO ORACLE,. IT DOESN'T NEED EXCLUSIVE LOCK ON THE TABLE.
+
+-------------------------------------------------------------------------
+
+vacuum a table:
+
+dbaclass=# vacuum dbatest.emptab;
+VACUUM
+
+both vacuum and analyze:
+
+dbaclass=# vacuum analyze dbatest.emptab;
+VACUUM
+
+with verbose:
+
+dbaclass# vacuum verbose analyze dbatest.emptab;
+
+Monitor vacuum process( if vacuum process runs for a long time)
+
+dbaclass#select * from pg_stat_progress_vacuum;
+
+Check vacuum related information for the table
+
+dbaclass=# select schemaname,relname,last_vacuum,vacuum_count from pg_stat_user_tables where relname='emptab';
+schemaname  | relname | last_vacuum                      | vacuum_count
+------------+---------+----------------------------------+--------------
+dbatest     | emptab  | 2020-07-21 18:35:34.801402+05:30 | 2
+(1 row)
+---
+VACUUM FULL - > JUST LIKE MOVE COMMAND IN ORACLE . IT TAKES MORE TIME, BUT IT RETURNS THE SPACE TO OS BECAUSE OF ITS COMPLEX ALGORITHM. IT also requires additional disk space , which can store the new copy of the table., until the activity is completed. Also it locks the table exclusively, which block all operations on the table .
+
+-- Command to run vacuum full command for table:
+
+dbaclass=# VACUUM FULL dbatest.emptab;
+VACUUM
+
+ 
+
+DEMO TO CHECK HOW IT RECLAIMS SPACE:
+
+-- Check existing space and delete some data:
+dbaclass=# select pg_size_pretty(pg_relation_size('dbatest.emptab'));
+pg_size_pretty
+----------------
+114 MB
+(1 row)
+
+dbaclass=# delete from dbatest.emptab where oid=13634;
+DELETE 131072
+
+-- We can observe size is still same:
+
+dbaclass=# select pg_size_pretty(pg_relation_size('dbatest.emptab'));
+pg_size_pretty
+----------------
+114 MB
+(1 row)
+
+-- Run vacuum full and observe the space usage:
+
+dbaclass=# VACUUM FULL dbatest.emptab;
+VACUUM
+
+dbaclass=# select pg_size_pretty(pg_relation_size('dbatest.emptab'));
+pg_size_pretty
+----------------
+39 MB ---- > from 114MB it came down to 39 MB.
+(1 row)
+---
+Autovacuum methods automates the executions vacuum,freeze and analyze commands.
+
+-- Find whether autovacuum is enabled or not:
+
+dbaclass=# select name,setting,short_desc,boot_val,pending_restart from pg_settings where name in ('autovacuum','track_counts');
+name.         | setting | short_desc                                | boot_val | pending_restart
+--------------+---------+-------------------------------------------+----------+-----------------
+autovacuum    | on      | Starts the autovacuum subprocess.         | on        | f
+track_counts  | on      | Collects statistics on database activity. | on        | f
+(2 rows)
+
+-- Find other autovacuum related parameter settings
+dbaclass=# select name,setting,short_desc,min_val,max_val,enumvals,boot_val,pending_restart from pg_settings where category like 'Autovacuum';
+
+
+- Change autovacuum settings:( they need restart)
+
+dbaclass=# alter system set autovacuum_max_workers=10 ;
+ALTER SYSTEM
+
+Now restart :
+
+pg_ctl stop
+pg_ctl start
+----------------
+REINDEX rebuilds an index using the data stored in the index's table, replacing the old copy of the index. There are several scenarios in which to use REINDEX:
+
+- Rebuild particular index:
+
+postgres=# REINDEX INDEX TEST_IDX2;
+REINDEX
+
+-- Rebuild all indexes on a table:
+
+postgres=# REINDEX TABLE TEST;
+REINDEX
+
+-- Rebuild all indexes of tables in a schema:
+postgres=# reindex schema public;
+REINDEX
+
+-- Rebuild all indexes in a database :
+
+postgres=# reindex database dbaclass;
+REINDEX
+
+-- Reindex with verbose option:
+
+postgres=# reindex (verbose) table test;
+INFO: index "test_idx" was reindexed
+DETAIL: CPU: user: 5.44 s, system: 2.72 s, elapsed: 11.96 s
+INFO: index "test_idx2" was reindexed
+DETAIL: CPU: user: 3.34 s, system: 1.01 s, elapsed: 5.49 s
+INFO: index "pg_toast_17395_index" was reindexed
+DETAIL: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+REINDEX
+
+Rebuild index without causing lock on the table:( using concurrently option) 
+
+postgres=# REINDEX ( verbose) table concurrently test;
+INFO: index "public.test_idx" was reindexed
+INFO: index "public.test_idx2" was reindexed
+INFO: index "pg_toast.pg_toast_17395_index" was reindexed
+INFO: table "public.test" was reindexed
+DETAIL: CPU: user: 11.09 s, system: 6.23 s, elapsed: 24.63 s.
+REINDEX
+------------------monitoring index creatrion or rebuild==========================
+dbaclass=# SELECT a.query,p.phase, p.blocks_total,p.blocks_done,p.tuples_total, p.tuples_done FROM pg_stat_progress_create_index p JOIN pg_stat_activity a ON p.pid = a.pid;
+
+-[ RECORD 1 ]+-------------------------------
+query        | reindex index test_idx;
+phase        | building index: scanning table
+blocks_total | 61281
+blocks_done  | 15331
+tuples_total | 0
+tuples_done  | 0
+
+(or)
+
+dbaclass=# select pid,datname,command,phase,tuples_total,tuples_done,partitions_total,partitions_done from pg_stat_progress_create_index;
+
+-[ RECORD 1 ]----+-------------------------------
+pid.              | 14944
+datname           | postgres
+command           | REINDEX
+phase             | building index: scanning table
+tuples_total      | 0
+tuples_done       | 0
+partitions_total  | 0
+partitions_done   | 0
+---------------------
+===============================monitoring vacuum operation---------------------------------------
+postgres# select * from pg_stat_progress_vacuum;
+-[ RECORD 1 ]------+--------------------
+pid                | 12540
+datid              | 21192
+datname            | b2cnsmst
+relid              | 22402
+phase              | cleaning up indexes
+heap_blks_total.   | 624176
+heap_blks_scanned  | 624176
+heap_blks_vacuumed | 624176
+index_vacuum_count | 0
+max_dead_tuples    | 178956970
+num_dead_tuples    | 0
+===========================
+-- Finding statistics level of a column ( orders.orderdate)-=================================================
+
+-- statistics level range is 1-10000 ( where 100 means 1 percent,10000 means 100 percent)
+
+edbstore=> SELECT attname as column_name , attstattarget as stats_level FROM pg_attribute WHERE attrelid = (SELECT oid FROM pg_class WHERE relname = 'orders') and attname='orderdate';
+
+column_name  | stats_level
+-------------+-------------
+orderdate    | 1000
+(1 row)
+
+-- To change statistics level of a column:
+
+edbstore=> alter table orders alter column orderdate set statistics 1000;
+ALTER TABLE
+
+------------------------------------------------
+finding vaccum sessting of table
+------------------------------------------------
+
+postgres=# SELECT n.nspname, c.relname,
+pg_catalog.array_to_string(c.reloptions || array(
+select 'toast.' ||
+x from pg_catalog.unnest(tc.reloptions) x),', ')
+as relopts
+FROM pg_catalog.pg_class c
+LEFT JOIN
+pg_catalog.pg_class tc ON (c.reltoastrelid = tc.oid)
+JOIN
+pg_namespace n ON c.relnamespace = n.oid
+WHERE c.relkind = 'r'
+AND nspname NOT IN ('pg_catalog', 'information_schema');
+
+nspname  | relname                             | relopts
+---------+-------------------------------------+------------------------
+public   | test                                |
+public   | city_id2                            |
+public   | test2                               | autovacuum_enabled=off
+
+ ==========
+
+-- Disable autovacuum for a table:
+
+postgres=# alter table test2 set( autovacuum_enabled = off);
+
+-- Enable autovacuum for a table
+
+postgres=# alter table test2 set( autovacuum_enabled = on);
+
+ 
+
+ ========================find the  last vaccum and analyze===================
+-- Here the table_name is test
+
+postgres=# select * from pg_stat_user_tables where relname='test';
+-[ RECORD 1 ]-------+---------------------------------
+relid               | 914713
+schemaname          | public
+relname             | test
+seq_scan            | 40
+seq_tup_read        | 12778861
+idx_scan            |
+idx_tup_fetch       |
+n_tup_ins           | 4774377
+n_tup_upd           | 0
+n_tup_del           | 4774377
+n_tup_hot_upd       | 0
+n_live_tup          | 0
+n_dead_tup          | 0
+n_mod_since_analyze | 0
+last_vacuum         |
+last_autovacuum     | 22-APR-22 21:27:10.863536 +03:00
+last_analyze        | 22-APR-22 21:05:05.874929 +03:00
+last_autoanalyze.   | 22-APR-22 21:27:10.865308 +03:00
+vacuum_count        | 0
+autovacuum_count    | 6
+analyze_count       | 2
+autoanalyze_count   | 11
+
+====================Find how much bloating a table has=========================
+-- Create the pgstattuple extension:
+
+postgres=# create extension pgstattuple;
+CREATE EXTENSION
+
+-- bloating percentage of the table "test":
+
+postgres=# SELECT pg_size_pretty(pg_relation_size('test')) as table_size,(pgstattuple('test')).dead_tuple_percent;
+table_size. | dead_tuple_percent
+------------+--------------------
+1408 kB     | 0
+(1 row)
+
+-- bloating percentage of index "test_x_idx":
+
+select pg_relation_size('test_x_idx') as index_size, 100-(pgstatindex('test_x_idx')).avg_leaf_density as bloat_ratio;
+
+index_size. | bloat_ratio
+------------+--------------------
+1008 kB     | 0
+(1 row)
+
+=====================================DBLINK==================================================
+1. Create extension:
+
+postgres# create extension dblink;
+
+2. Create foreign server:( use the target postgres details.
+
+postgres=# CREATE SERVER oracle_dblink FOREIGN DATA WRAPPER dblink_fdw OPTIONS ( host '' ,dbname 'postgres' , port 'portno');
+
+3. Create user mapping details.
+
+postgres=# CREATE USER MAPPING FOR enterprisedb SERVER oracle_dblink OPTIONS ( user 'test' ,password 'test');
+
+4. Test the database link:
+
+postgres=# SELECT dblink_connect('my_new_conn', 'oracle_dblink');
+
+dblink_connect
+----------------
+OK
+(1 row)
+
+5. Fetch data using db_link:
+
+postgres=# select * from dblink('oracle_dblink','select object_name from test') as test_object(object_name varchar );
+object_name
+---------------------------------------------------
+PG_AGGREGATE_FNOID_INDEX
+PG_AM_NAME_INDEX
+PG_AM_OID_INDEX
+PG_AMOP_FAM_STRAT_INDEX
+--------------------------------------------------------------
+
+==================================================Replication=======================
+- Find lag in bytes( run on standby)
+
+postgres# SELECT pg_wal_lsn_diff(sent_lsn, replay_lsn) from pg_stat_replication;
+
+--- Find lag in seconds( run on standby)
+
+postgres# SELECT CASE WHEN pg_last_wal_receive_lsn() =
+pg_last_wal_replay_lsn()
+THEN 0 ELSE
+EXTRACT (EPOCH FROM now() - pg_last_xact_replay_timestamp()) END AS lag_seconds;
+
+-- Check existing replication slot details
+
+postgres# SELECT redo_lsn, slot_name,restart_lsn, active,
+round((redo_lsn-restart_lsn) / 1024 / 1024 / 1024, 2) AS GB_lag
+FROM pg_control_checkpoint(), pg_replication_slots;
+
+-- Create replication slots
+
+postgres#SELECT pg_create_physical_replication_slot('slot_one');
+
+-- Drop unused replication slots
+
+postgres=# SELECT pg_drop_replication_slot('slot_one');
+
+-- To stop/pause recovery on replication server(standby)
+
+postgres=# select pg_wal_replay_pause();
+pg_wal_replay_pause
+---------------------
+
+(1 row)
+
+postgres=# select pg_is_wal_replay_paused();
+pg_is_wal_replay_paused
+-------------------------
+t
+(1 row)
+
+-- To Resume recovery on replication server(standby)
+
+postgres=# select pg_wal_replay_resume();
+pg_wal_replay_resume
+----------------------
+
+(1 row)
+
+postgres=# select pg_is_wal_replay_paused();
+pg_is_wal_replay_paused
+-------------------------
+f
+(1 row)
+
+-- Run on standby database
+
+postgres=# select pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn(), pg_last_xact_replay_timestamp();
+-[ RECORD 1 ]-----------------+---------------------------------
+pg_last_wal_receive_lsn       | 0/401F658
+pg_last_wal_replay_lsn        | 0/401F658
+pg_last_xact_replay_timestamp | 27-MAY-21 16:26:18.704299 +03:00
+
+postgres=# select * from pg_stat_wal_receiver;
+-[ RECORD 1 ]---------+------------------------------------------------------------------------
+pid                   | 7933
+status                | streaming
+receive_start_lsn     | 0/4000000
+receive_start_tli     | 1
+received_lsn          | 0/401F658
+received_tli          | 1
+last_msg_send_time.   | 27-MAY-21 20:29:39.599389 +03:00
+last_msg_receipt_time | 27-MAY-21 20:29:39.599599 +03:00
+latest_end_lsn.       | 0/401F658
+latest_end_time       | 27-MAY-21 16:31:20.815183 +03:00
+slot_name             |
+sender_host           | 10.20.30.40
+sender_port           | 5444
+conninfo | user=enterprisedb passfile=/bgidata/enterprisedb/.pgpass dbname=replication host=10.20.30.40 port=5444 fallback_application_name=walreceiver sslmode=prefer sslcompression=0 krbsrvname=postgres target_session_attrs=any
+
+-- Run on this primary server for outgoing replication details
+
+postgres=# select * from pg_stat_replication;
+-[ RECORD 1 ]----+---------------------------------
+pid              | 18556
+usesysid.        | 10
+usename          | enterprisedb
+application_name | walreceiver
+client_addr      | 10.20.76.12
+client_hostname  |
+client_port      | 44244
+backend_start    | 27-MAY-21 13:56:30.131681 +03:00
+backend_xmin     |
+state            | streaming
+sent_lsn.        | 0/401F658
+write_lsn        | 0/401F658
+flush_lsn        | 0/401F658
+replay_lsn.      | 0/401F658
+write_lag        |
+flush_lag        |
+replay_lag.      |
+sync_priority.   | 0
+sync_state       | async
+
+select * from pg_stat_subscription;
+
+-- Check existing replication slot details
+
+postgres# SELECT redo_lsn, slot_name,restart_lsn, active,
+round((redo_lsn-restart_lsn) / 1024 / 1024 / 1024, 2) AS GB_lag
+FROM pg_control_checkpoint(), pg_replication_slots;
+
+-- Create replication slots
+
+postgres#SELECT pg_create_physical_replication_slot('slot_one');
+
+-- Drop unused replication slots
+
+postgres=# SELECT pg_drop_replication_slot('slot_one');
